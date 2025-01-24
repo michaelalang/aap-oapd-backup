@@ -1,0 +1,65 @@
+apiVersion: velero.io/v1
+kind: Schedule
+metadata:
+  annotations: {}
+  name: daily-aap-backup
+  namespace: openshift-adp
+  labels:
+    app: ansible-automation-platform
+    component: postgres
+spec:
+  schedule: '0 2 * * * '
+  skipImmediately: false
+  template:
+    csiSnapshotTimeout: 10m0s
+    datamover: kopia
+    defaultVolumesToFsBackup: true
+    hooks:
+      resources:
+        - includedNamespaces:
+            - ansible-automation-platform
+          labelSelector:
+            matchExpressions:
+              - key: app.kubernetes.io/component
+                operator: In
+                values:
+                  - database
+              - key: app.kubernetes.io/managed-by
+                operator: In
+                values:
+                  - automationcontroller-operator
+          name: pg_dump
+          pre:
+            - exec:
+                command:
+                  - mkdir 
+                  - -p
+                  - /var/lib/pgsql/data/backup
+                container: postgres
+                onError: Continue
+                timeout: 10s
+            - exec:
+                command:
+                  - rm
+                  - -f
+                  - /var/lib/pgsql/data/backup/pg_dumpall.gz
+                container: postgres
+                onError: Continue
+                timeout: 10s
+            - exec:
+                command:
+                  - /bin/bash
+                  - -c
+                  - /usr/bin/pg_dumpall -U postgres -c | /usr/bin/gzip -9 -f > /var/lib/pgsql/data/backup/pg_dumpall.gz
+                container: postgres
+                onError: Fail
+                timeout: 1800s
+    includedNamespaces:
+      - ansible-automation-platform
+    itemOperationTimeout: 0h5m0s
+    metadata: {}
+    snapshotMoveData: true
+    storageLocation: ${STORAGE}
+    ttl: 78h0m0s
+    volumeSnapshotLocations:
+      - ${STORAGE}
