@@ -1,5 +1,13 @@
 # OpenShift APIs for Data Protection (OADP) for Red Hat Ansbile Automation Platform Database
 
+**NOTE**
+```text
+It is crucial to understand that the underlying StorageClass needs to have VolumeSnapshot capabilities as OADP will
+refuse to to backup without in a consistent way.
+Furthermore, depending on the recovery time objective (RTO) the task and web deployment need to be reconciled as otherwise they
+will have the job id cached which has not been allocated in the Database and will cause a UI error to be displayed.
+``` 
+
 Taking a backup of your AAP Database
 ```
 export STORAGE=<your OADP storage location>
